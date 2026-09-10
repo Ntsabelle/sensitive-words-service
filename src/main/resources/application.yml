@@ -3,10 +3,11 @@ spring:
     name: sensitive-words-service
 
   datasource:
-    url: jdbc:h2:mem:testdb
+    # Database connection - uses environment variables for security
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:testdb}
     driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
     hikari:
       # Connection pool size configuration
       # maximum-pool-size: number of concurrent connections the pool maintains
@@ -74,7 +75,8 @@ springdoc:
     path: /v3/api-docs
 
 jwt:
-  secret: my-secret-key-for-jwt-token-generation-min-256-bits
+  # JWT secret - uses environment variable for security (min 256 bits)
+  secret: ${JWT_SECRET:my-secret-key-for-jwt-token-generation-min-256-bits}
   expiration: 120000
 
 logging:
