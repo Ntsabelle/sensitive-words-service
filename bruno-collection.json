@@ -1,0 +1,120 @@
+{
+  "info": {
+    "name": "Sensitive Words Service",
+    "uid": "sensitive-words-service",
+    "version": "1.0"
+  },
+  "auth": null,
+  "settings": {
+    "headers": [
+      {
+        "key": "Content-Type",
+        "value": "application/json",
+        "enabled": true
+      },
+      {
+        "key": "Accept",
+        "value": "application/json",
+        "enabled": true
+      }
+    ]
+  },
+  "variables": {
+    "baseUrl": "http://localhost:8080",
+    "baseUrlDev": "http://localhost:8080",
+    "baseUrlProd": "https://api.example.com"
+  },
+  "requests": [
+    {
+      "uid": "list-sensitive-words",
+      "name": "GET - List All Sensitive Words",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/v1/sensitive-words?page=0&size=20",
+      "auth": null,
+      "headers": [],
+      "body": null
+    },
+    {
+      "uid": "create-sensitive-word",
+      "name": "POST - Create Sensitive Word",
+      "method": "POST",
+      "url": "{{baseUrl}}/api/v1/sensitive-words",
+      "auth": null,
+      "headers": [],
+      "body": {
+        "mode": "json",
+        "json": {
+          "word": "badword",
+          "category": "profanity",
+          "severity": "HIGH"
+        }
+      }
+    },
+    {
+      "uid": "get-sensitive-word",
+      "name": "GET - Get Sensitive Word by ID",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/v1/sensitive-words/1",
+      "auth": null,
+      "headers": [],
+      "body": null
+    },
+    {
+      "uid": "update-sensitive-word",
+      "name": "PUT - Update Sensitive Word",
+      "method": "PUT",
+      "url": "{{baseUrl}}/api/v1/sensitive-words/1",
+      "auth": null,
+      "headers": [],
+      "body": {
+        "mode": "json",
+        "json": {
+          "word": "updatedword",
+          "category": "profanity",
+          "severity": "MEDIUM"
+        }
+      }
+    },
+    {
+      "uid": "delete-sensitive-word",
+      "name": "DELETE - Delete Sensitive Word",
+      "method": "DELETE",
+      "url": "{{baseUrl}}/api/v1/sensitive-words/1",
+      "auth": null,
+      "headers": [],
+      "body": null
+    },
+    {
+      "uid": "sanitize-text",
+      "name": "POST - Sanitize Text",
+      "method": "POST",
+      "url": "{{baseUrl}}/api/v1/sanitize",
+      "auth": null,
+      "headers": [],
+      "body": {
+        "mode": "json",
+        "json": {
+          "text": "This is a badword text that needs sanitization"
+        }
+      }
+    },
+    {
+      "uid": "health-check",
+      "name": "GET - Health Check",
+      "method": "GET",
+      "url": "{{baseUrl}}/actuator/health",
+      "auth": null,
+      "headers": [],
+      "body": null
+    },
+    {
+      "uid": "swagger-ui",
+      "name": "GET - Swagger UI",
+      "method": "GET",
+      "url": "{{baseUrl}}/swagger-ui.html",
+      "auth": null,
+      "headers": [],
+      "body": null
+    }
+  ]
+}
