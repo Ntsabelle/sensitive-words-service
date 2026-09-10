@@ -1,5 +1,6 @@
 package com.joseph.sensitivewordsservice.controller;
 
+import com.joseph.sensitivewordsservice.annotation.RateLimit;
 import com.joseph.sensitivewordsservice.dto.ApiErrorResponse;
 import com.joseph.sensitivewordsservice.dto.LoginRequest;
 import com.joseph.sensitivewordsservice.dto.LoginResponse;
@@ -36,6 +37,7 @@ public class AuthController {
      * @throws IllegalArgumentException if credentials invalid or user inactive
      */
     @PostMapping("/login")
+    @RateLimit(bucketName = "login")
     @Operation(
         summary = "Authenticate user and obtain JWT token",
         description = "Validate username and password credentials. Returns JWT bearer token for subsequent authenticated requests.",
@@ -97,6 +99,7 @@ public class AuthController {
      * @throws IllegalArgumentException if username already exists
      */
     @PostMapping("/register")
+    @RateLimit(bucketName = "login")
     @Operation(
         summary = "Register a new user account",
         description = "Create new user with provided username and password. Password is BCrypt hashed. Username must be globally unique.",

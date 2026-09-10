@@ -1,6 +1,7 @@
 package com.joseph.sensitivewordsservice.controller;
 
 
+import com.joseph.sensitivewordsservice.annotation.RateLimit;
 import com.joseph.sensitivewordsservice.dto.*;
 import com.joseph.sensitivewordsservice.entity.SensitiveWord;
 import com.joseph.sensitivewordsservice.mapper.SensitiveWordMapper;
@@ -33,6 +34,7 @@ public class SensitiveWordController {
     private final SanitizationService sanitizationService;
 
     @PostMapping
+    @RateLimit(bucketName = "sensitiveWord")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
         summary = "Create a new sensitive word",
@@ -197,6 +199,7 @@ public class SensitiveWordController {
     }
 
     @PutMapping("/{id}")
+    @RateLimit(bucketName = "sensitiveWord")
     @Operation(
         summary = "Update a sensitive word",
         description = "Update word text or active status. Word is immediately updated in sanitization rules."
@@ -254,6 +257,7 @@ public class SensitiveWordController {
     }
 
     @DeleteMapping("/{id}")
+    @RateLimit(bucketName = "sensitiveWord")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(
         summary = "Delete a sensitive word",

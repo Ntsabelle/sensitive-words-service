@@ -2,6 +2,7 @@ package com.joseph.sensitivewordsservice.controller;
 
 
 
+import com.joseph.sensitivewordsservice.annotation.RateLimit;
 import com.joseph.sensitivewordsservice.dto.ApiErrorResponse;
 import com.joseph.sensitivewordsservice.dto.SanitizeRequest;
 import com.joseph.sensitivewordsservice.dto.SanitizeResponse;
@@ -40,6 +41,7 @@ public class SanitizeController {
      * Authentication: Requires valid JWT token in Authorization header
      */
     @PostMapping
+    @RateLimit(bucketName = "sanitize")
     @Operation(
         summary = "Sanitize text by masking sensitive words",
         description = "Replace all occurrences of sensitive words with asterisks (*). Matching is case-insensitive. Each word is replaced with asterisks matching its length.",
