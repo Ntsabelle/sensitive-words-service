@@ -335,7 +335,7 @@ GET /actuator/metrics/sanitize.words.match.total
 
 ## Development Roadmap
 
-- [ ] Rate limiting on sanitize endpoint
+- [x] Rate limiting on expensive endpoints
 - [ ] Bulk import sensitive words from CSV
 - [ ] Word variants/aliases support
 - [ ] Webhook notifications on pattern changes
@@ -344,12 +344,27 @@ GET /actuator/metrics/sanitize.words.match.total
 
 ## Performance Improvements
 
-Added caching and optimizations to improve throughput:
+Added caching, concurrency, and rate limiting to improve throughput:
 
 - **User caching** - Login results cached for 10 minutes to avoid repeated database hits
 - **Database indexes** - Added index on `User.username` column for faster lookups
 - **Better concurrency** - Switched to ReadWriteLock so multiple sanitization requests can run in parallel
 - **Connection pool tuning** - Configured leak detection and batch processing for more efficient database access
+
+## Rate Limiting
+
+Expensive endpoints are rate limited to prevent abuse and ensure fair resource usage:
+
+| Endpoint | Limit | Window |
+|----------|-------|--------|
+| POST /api/v1/sanitize | 100 requests | 1 minute |
+| POST /api/v1/auth/login | 5 attempts | 1 minute |
+| POST /api/v1/auth/register | 5 attempts | 1 minute |
+| POST /api/v1/sensitive-words | 20 operations | 1 minute |
+| PUT /api/v1/sensitive-words/{id} | 20 operations | 1 minute |
+| DELETE /api/v1/sensitive-words/{id} | 20 operations | 1 minute |
+
+Rate limits are per-client (based on IP address). Exceeding the limit returns HTTP 429 Too Many Requests.
 
 ## Contributing
 
