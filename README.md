@@ -4,14 +4,14 @@ A Spring Boot REST API for filtering and sanitizing sensitive words in text cont
 
 ## Features
 
-✅ **Word Management** - CRUD operations for sensitive word dictionary  
-✅ **Text Sanitization** - Real-time text filtering with asterisk replacement  
-✅ **JWT Authentication** - Secure API with token-based auth  
-✅ **Auto-Cache Refresh** - Instant pattern updates when dictionary changes  
-✅ **Case-Insensitive Matching** - Catches variations (badword, BADWORD, BadWord)  
-✅ **Word Boundary Detection** - Only matches complete words, not substrings  
-✅ **Performance Metrics** - Monitor sanitization duration and match counts  
-✅ **H2/MSSQL Support** - Development with H2, production with SQL Server  
+- Word Management - CRUD operations for sensitive word dictionary  
+- Text Sanitization - Real-time text filtering with asterisk replacement  
+- JWT Authentication - Secure API with token-based auth  
+- Auto-Cache Refresh - Instant pattern updates when dictionary changes  
+- Case-Insensitive Matching - Catches variations (badword, BADWORD, BadWord)  
+- Word Boundary Detection - Only matches complete words, not substrings  
+- Performance Metrics - Monitor sanitization duration and match counts  
+- H2/MSSQL Support - Development with H2, production with SQL Server
 
 ## Technology Stack
 
@@ -365,6 +365,6 @@ MIT License - See LICENSE file
 ## Support
 
 For issues and questions:
-- 📧 Email: support@example.com
-- 🐛 GitHub Issues: [Create issue](https://github.com/joseph/sensitive-words-service/issues)
-- 📖 Documentation: http://localhost:8080/swagger-ui.html
+- Email: support@example.com
+- GitHub Issues: https://github.com/joseph/sensitive-words-service/issues
+- Documentation: http://localhost:8080/swagger-ui.html
