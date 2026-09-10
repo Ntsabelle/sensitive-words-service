@@ -8,15 +8,28 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.Getter;
 
+/**
+ * Request DTO for text sanitization.
+ * Accepts arbitrary text and returns sanitized version with sensitive words masked.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Payload containing the raw text to be sanitized")
+@Schema(
+    description = "Request to sanitize text by masking sensitive words with asterisks",
+    example = """
+    {
+      "text": "This is a badword text that needs sanitization"
+    }"""
+)
 public class SanitizeRequest {
 
     @NotBlank(message = "Input text must not be blank")
-    @Schema(description = "The text to be sanitized",
-            example = "This is a sample text with some sensitive words.",requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(
+        description = "Raw text to be sanitized. Will be searched for sensitive words (case-insensitive) and matches replaced with asterisks.",
+        example = "This is a badword text that needs sanitization",
+        requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String text;
 }
