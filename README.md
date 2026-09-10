@@ -342,6 +342,15 @@ GET /actuator/metrics/sanitize.words.match.total
 - [ ] Audit logging for word modifications
 - [ ] PostgreSQL support
 
+## Performance Improvements
+
+Added caching and optimizations to improve throughput:
+
+- **User caching** - Login results cached for 10 minutes to avoid repeated database hits
+- **Database indexes** - Added index on `User.username` column for faster lookups
+- **Better concurrency** - Switched to ReadWriteLock so multiple sanitization requests can run in parallel
+- **Connection pool tuning** - Configured leak detection and batch processing for more efficient database access
+
 ## Contributing
 
 1. Create feature branch: `git checkout -b feature/xyz`

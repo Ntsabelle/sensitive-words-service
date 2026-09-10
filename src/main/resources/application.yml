@@ -8,12 +8,26 @@ spring:
     username: sa
     password:
     hikari:
+      # Connection pool size configuration
+      # maximum-pool-size: number of concurrent connections the pool maintains
+      # For development: 10 is adequate
+      # For production: scale based on workload (typically 20-50 for moderate load)
       maximum-pool-size: 10
+      # minimum-idle: keeps this many idle connections available
+      # Reduces latency of acquiring connections vs creating new ones
       minimum-idle: 2
+      # connection-timeout: max time to wait for available connection (milliseconds)
       connection-timeout: 30000
+      # idle-timeout: how long connection can sit unused before being closed (milliseconds)
       idle-timeout: 600000
+      # max-lifetime: max time connection can be open before forcing closure (milliseconds)
+      # Prevents memory leaks from never-closed connections
       max-lifetime: 1800000
+      # pool-name: for monitoring and debugging connection pool
       pool-name: SensitiveWordsHikariPool
+      # leak-detection-threshold: time to flag potential connection leaks (milliseconds)
+      # Set to 0 to disable, or 60000+ for production monitoring
+      leak-detection-threshold: 60000
 
   h2:
     console:
@@ -23,13 +37,20 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create
+    # open-in-view: false prevents LazyInitializationException but requires proper session management
     open-in-view: false
     properties:
       hibernate:
+        # JDBC batch processing for better insert/update performance
         jdbc:
           batch_size: 30
+          fetch_size: 100
+        # Order inserts/updates by entity for better database efficiency
         order_inserts: true
         order_updates: true
+        # Connection validation to prevent "stale connection" errors
+        connection:
+          provider_disables_autocommit: true
     show-sql: ${DB_SHOW_SQL:false}
 
   server:

@@ -16,8 +16,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -36,8 +36,9 @@ public class SanitizationService {
     // Thread-safe holder for compiled regex pattern
     private final AtomicReference<Pattern> compiledPattern = new AtomicReference<>(NEVER_MATCHES);
 
-    // Lock for thread-safe pattern refresh
-    private final Lock refreshLock = new ReentrantLock();
+    // ReadWriteLock for pattern refresh - allows multiple concurrent readers during sanitize,
+    // exclusive access during refresh. Better performance than ReentrantLock for read-heavy workloads.
+    private final ReadWriteLock refreshLock = new ReentrantReadWriteLock();
 
     // Cache hash to avoid unnecessary pattern recompilation
     private volatile int cachedWordListHash = 0;
@@ -65,8 +66,8 @@ public class SanitizationService {
 
     @Transactional(readOnly = true)
     public void refresh() {
-        // Refresh the compiled pattern
-        refreshLock.lock();
+        // Acquire write lock for pattern rebuild
+        refreshLock.writeLock().lock();
         try{
             List<String> activeWords = sensitiveWordRepository.findAllActiveWords();
 
@@ -95,7 +96,7 @@ public class SanitizationService {
             compiledPattern.set(pattern);
             log.info("Sensitive word cache refreshed ({} word(s))", sorted.size());
         } finally {
-            refreshLock.unlock();
+            refreshLock.writeLock().unlock();
         }
     }
 
@@ -117,19 +118,25 @@ public class SanitizationService {
             return new SanitizeResult(input, 0);
         }
 
-        Matcher matcher = compiledPattern.get().matcher(input);
-        StringBuilder sb = new StringBuilder(input.length());
-        int matchCount = 0;
-        int lastMatchEnd = 0;
+        // Acquire read lock for pattern access - allows multiple concurrent sanitizations
+        refreshLock.readLock().lock();
+        try {
+            Matcher matcher = compiledPattern.get().matcher(input);
+            StringBuilder sb = new StringBuilder(input.length());
+            int matchCount = 0;
+            int lastMatchEnd = 0;
 
-        while(matcher.find()){
-            sb.append(input, lastMatchEnd, matcher.start());
-            sb.append("*".repeat(matcher.end() - matcher.start()));
-            lastMatchEnd = matcher.end();
-            matchCount++;
+            while(matcher.find()){
+                sb.append(input, lastMatchEnd, matcher.start());
+                sb.append("*".repeat(matcher.end() - matcher.start()));
+                lastMatchEnd = matcher.end();
+                matchCount++;
+            }
+            sb.append(input, lastMatchEnd, input.length());
+            return new SanitizeResult(sb.toString(), matchCount);
+        } finally {
+            refreshLock.readLock().unlock();
         }
-        sb.append(input, lastMatchEnd, input.length());
-        return new SanitizeResult(sb.toString(), matchCount);
     }
 
     public record SanitizeResult(String sanitizedText, int matchCount) {}

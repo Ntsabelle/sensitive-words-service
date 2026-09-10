@@ -7,6 +7,7 @@ import com.joseph.sensitivewordsservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -32,7 +33,7 @@ public class AuthService {
      * @throws IllegalArgumentException if credentials invalid or user inactive
      */
     public LoginResponse login(LoginRequest request) {
-        // Find user by username
+        // Find user by username (uses cache if available)
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> {
                     log.warn("Login attempt with invalid username: {}", request.getUsername());
@@ -65,12 +66,14 @@ public class AuthService {
     /**
      * Register a new user account.
      * Checks for duplicate username and hashes password using BCrypt.
+     * Invalidates username cache on successful registration.
      * 
      * @param username Unique username for the account
      * @param password Plain text password (will be hashed)
      * @return Saved User entity
      * @throws IllegalArgumentException if username already exists
      */
+    @CacheEvict(value = "users", key = "#username")
     public User registerUser(String username, String password) {
         // Check if username already exists
         if (userRepository.findByUsername(username).isPresent()) {

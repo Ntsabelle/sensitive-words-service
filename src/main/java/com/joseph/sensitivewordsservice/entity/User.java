@@ -19,7 +19,7 @@ import java.time.Instant;
  * - createdAt and updatedAt timestamps (auto-managed by Hibernate)
  */
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = @Index(name = "idx_users_username", columnList = "username"))
 @Data
 @Builder
 @NoArgsConstructor
@@ -30,7 +30,7 @@ public class User {
     private Long id;
 
     /** Unique username used for login. Case-sensitive. */
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, name = "username")
     private String username;
 
     /** BCrypt-hashed password. Never stored or returned in plain text. */
