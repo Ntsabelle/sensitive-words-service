@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sensitive-words-mssql
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "YourStrong@Password123"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "YourStrong@Password123", "-Q", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sensitive-words-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sensitive-words-app
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:sqlserver://mssql:1433;databaseName=SensitiveWordsDB;encrypt=false;trustServerCertificate=true"
+      SPRING_DATASOURCE_DRIVER: "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+      SPRING_DATASOURCE_USERNAME: "sa"
+      SPRING_DATASOURCE_PASSWORD: "YourStrong@Password123"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "create"
+      JWT_SECRET: "my-secret-key-for-jwt-token-generation-min-256-bits"
+      SERVER_PORT: "8080"
+    ports:
+      - "8080:8080"
+    depends_on:
+      mssql:
+        condition: service_healthy
+    networks:
+      - sensitive-words-network
+    restart: unless-stopped
+
+volumes:
+  mssql_data:
+
+networks:
+  sensitive-words-network:
+    driver: bridge

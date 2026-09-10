@@ -1,0 +1,15 @@
+.git
+.gitignore
+.idea
+.mvn
+*.iml
+*.log
+target
+.DS_Store
+node_modules
+.env
+docker-compose.override.yml
+DOCKER.md
+SECRETS.md
+README.md
+.github

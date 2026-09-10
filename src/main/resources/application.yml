@@ -4,8 +4,10 @@ spring:
 
   datasource:
     # Database connection - uses environment variables for security
+    # Default: H2 in-memory for development
+    # Docker: MS SQL via docker-compose.yml
     url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:testdb}
-    driver-class-name: org.h2.Driver
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER:org.h2.Driver}
     username: ${SPRING_DATASOURCE_USERNAME:sa}
     password: ${SPRING_DATASOURCE_PASSWORD:}
     hikari:
@@ -37,7 +39,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:create}
     # open-in-view: false prevents LazyInitializationException but requires proper session management
     open-in-view: false
     properties:
