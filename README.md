@@ -46,6 +46,30 @@ java -jar target/sensitive-words-service-0.0.1-SNAPSHOT.jar
 
 Service starts on **http://localhost:8080**
 
+### Docker Setup (Optional)
+
+Run the service with MS SQL Server using Docker Compose:
+
+```bash
+# Start services (app + MS SQL database)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f app
+
+# Stop services
+docker-compose down
+
+# Reset database and restart
+docker-compose down -v
+docker-compose up -d
+```
+
+Service runs on **http://localhost:8080**
+Database: MS SQL Server on localhost:1433 (User: sa / Password: YourStrong@Password123)
+
+For detailed Docker setup and configuration, see [DOCKER.md](DOCKER.md)
+
 ## API Endpoints
 
 ### Authentication (Public)
