@@ -21,10 +21,22 @@ jobs:
         cache: maven
 
     - name: Run Maven clean package
-      run: mvn clean package -q -Dspring.profiles.active=test
+      run: mvn clean package -q
+      env:
+        SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+        SPRING_DATASOURCE_DRIVER: com.microsoft.sqlserver.jdbc.SQLServerDriver
+        SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+        SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
     - name: Run tests
-      run: mvn test -Dspring.profiles.active=test
+      run: mvn test
+      env:
+        SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+        SPRING_DATASOURCE_DRIVER: com.microsoft.sqlserver.jdbc.SQLServerDriver
+        SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+        SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
     - name: Upload test results
       if: always()
