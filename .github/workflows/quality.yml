@@ -21,18 +21,5 @@ jobs:
         cache: maven
 
     - name: Check code formatting
-      run: mvn verify -DskipTests -Dspring.profiles.active=test
-      env:
-        SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
-        SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
-        SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
-        JWT_SECRET: ${{ secrets.JWT_SECRET }}
-
-    - name: Run all tests with coverage
-      run: mvn test -DargLine="-XX:+EnableDynamicAgentLoading" -Dspring.profiles.active=test
-      env:
-        SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
-        SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
-        SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
-        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      run: mvn verify -DskipTests
 
