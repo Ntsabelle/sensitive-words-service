@@ -21,7 +21,7 @@ jobs:
         cache: maven
 
     - name: Check code formatting
-      run: bash ./mvnw verify -DskipTests
+      run: sh ./mvnw verify -DskipTests
       env:
         SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
         SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
@@ -29,7 +29,7 @@ jobs:
         JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
     - name: Run all tests with coverage
-      run: bash ./mvnw test -DargLine="-XX:+EnableDynamicAgentLoading"
+      run: sh ./mvnw test -DargLine="-XX:+EnableDynamicAgentLoading"
       env:
         SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
         SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
