@@ -20,9 +20,6 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: Make mvnw executable
-      run: chmod +x ./mvnw
-
     - name: Check code formatting
       run: bash ./mvnw verify -DskipTests
       env:
