@@ -9,10 +9,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SensitiveWordService {
     private final SensitiveWordRepository sensitiveWordRepository;
     private final SanitizationService sanitizationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Create a new sensitive word.
@@ -35,19 +39,17 @@ public class SensitiveWordService {
         String word = normalize(request.getWord());
         log.debug("Create sensitive word: word='{}', active={}", word, request.getActive());
 
-        // Check for duplicates case-insensitively (badword = Badword = BADWORD)
         if(sensitiveWordRepository.existsByWordIgnoreCase(word)){
             throw new DuplicateWordException("Sensitive word already exists: " + word);
         }
         
         SensitiveWord entity = SensitiveWord.builder()
                 .word(word)
-                // Default to active if not specified
                 .active(request.getActive() == null || request.getActive())
                 .build();
 
         SensitiveWord saved = sensitiveWordRepository.save(entity);
-        sanitizationService.refresh();
+        eventPublisher.publishEvent(new SensitiveWordChangedEvent(saved.getId()));
         log.info("Sensitive word created: id={}, word='{}', active={}", saved.getId(), saved.getWord(), saved.isActive());
         return saved;
     }
@@ -105,7 +107,6 @@ public class SensitiveWordService {
         String newWord = normalize(request.getWord());
         log.debug("Updating sensitive word: id={}, oldWord='{}', newWord='{}', active={}", id, oldWord, newWord, request.getActive());
         
-        // Check for duplicates, but allow same word (case-insensitive comparison)
         if(!newWord.equalsIgnoreCase(existing.getWord())
                 && sensitiveWordRepository.existsByWordIgnoreCase(newWord)){
             throw new DuplicateWordException("Sensitive word already exists: " + newWord);
@@ -114,7 +115,7 @@ public class SensitiveWordService {
         existing.setWord(newWord);
         existing.setActive(request.getActive() == null || request.getActive());
         SensitiveWord saved = sensitiveWordRepository.save(existing);
-        sanitizationService.refresh();
+        eventPublisher.publishEvent(new SensitiveWordChangedEvent(saved.getId()));
         log.info("Sensitive word updated: id={}, oldWord='{}', newWord='{}', active={}",
                 saved.getId(), oldWord, saved.getWord(), saved.isActive());
         return saved;
@@ -130,7 +131,7 @@ public class SensitiveWordService {
         SensitiveWord existing = getById(id);
         log.debug("Delete sensitive word: id={}, word='{}'", existing.getId(), existing.getWord());
         sensitiveWordRepository.delete(existing);
-        sanitizationService.refresh();
+        eventPublisher.publishEvent(new SensitiveWordChangedEvent(existing.getId()));
         log.info("Sensitive word deleted: id={}, word='{}'", existing.getId(), existing.getWord());
     }
 

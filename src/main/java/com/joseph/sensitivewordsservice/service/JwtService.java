@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.Base64;
 
 @Service
 @Slf4j
@@ -24,6 +25,36 @@ public class JwtService {
     // Token expiration time in milliseconds
     @Value("${jwt.expiration:86400000}")
     private Long expiration;
+
+    public JwtService(@Value("${jwt.secret:my-secret-key-for-jwt-token-generation-min-256-bits}") String secretKey) {
+        this.secretKey = secretKey;
+        validateSecretKey(secretKey);
+    }
+
+    private void validateSecretKey(String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("JWT secret key must not be empty. Set jwt.secret environment variable.");
+        }
+        
+        byte[] decodedSecret;
+        try {
+            decodedSecret = Base64.getDecoder().decode(secret);
+        } catch (IllegalArgumentException e) {
+            decodedSecret = secret.getBytes();
+        }
+        
+        int bitLength = decodedSecret.length * 8;
+        if (bitLength < 256) {
+            throw new IllegalStateException(
+                String.format("JWT secret key must be at least 256 bits (32 bytes). Current: %d bits. " +
+                    "Generate a key with: echo '%s' | openssl base64", 
+                    bitLength, 
+                    "$(openssl rand -base64 32)")
+            );
+        }
+        
+        log.info("JWT secret key validated: {} bits", bitLength);
+    }
 
     /**
      * Get SecretKey for JWT signing and verification.
