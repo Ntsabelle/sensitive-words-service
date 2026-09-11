@@ -27,10 +27,11 @@ services:
     volumes:
       - mssql_data:/var/opt/mssql
     healthcheck:
-      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${SA_PASSWORD:-ChangeMe@1234}", "-Q", "SELECT 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${SA_PASSWORD:-ChangeMe@1234}", "-Q", "SELECT 1", "-b"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 30s
     networks:
       - sensitive-words-network
     restart: unless-stopped
@@ -41,22 +42,23 @@ services:
       dockerfile: Dockerfile
     container_name: sensitive-words-app
     environment:
-      SPRING_DATASOURCE_URL: "jdbc:sqlserver://mssql:1433;databaseName=SensitiveWordsDB;encrypt=false;trustServerCertificate=true"
-      SPRING_DATASOURCE_DRIVER: "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+      SPRING_DATASOURCE_URL: "jdbc:h2:mem:testdb"
+      SPRING_DATASOURCE_DRIVER: "org.h2.Driver"
       SPRING_DATASOURCE_USERNAME: "sa"
-      SPRING_DATASOURCE_PASSWORD: ${SA_PASSWORD:-ChangeMe@1234}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SPRING_DATASOURCE_PASSWORD: ""
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "create"
+      SPRING_H2_CONSOLE_ENABLED: "false"
       SPRING_REDIS_HOST: "redis"
       SPRING_REDIS_PORT: "6379"
-      JWT_SECRET: ${JWT_SECRET:-must-set-environment-variable}
+      JWT_SECRET: ${JWT_SECRET:-kXebNkPT3jEp7QIrI6Xyfiks7VBKepg0AsfHaj/BzhI=}
       SERVER_PORT: "8080"
     ports:
       - "8080:8080"
     depends_on:
       redis:
-        condition: service_healthy
+        condition: service_started
       mssql:
-        condition: service_healthy
+        condition: service_started
     networks:
       - sensitive-words-network
     restart: unless-stopped
