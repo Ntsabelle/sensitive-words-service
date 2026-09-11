@@ -1,17 +1,19 @@
 # Sensitive Words Service
 
-A Spring Boot REST API for filtering and sanitizing sensitive words in text content. Built with Java 21, JWT authentication, and comprehensive metrics.
+A Spring Boot REST API for filtering and sanitizing sensitive words in text content. Built with Java 21, JWT authentication, distributed rate limiting, and comprehensive metrics.
 
 ## Features
 
 - Word Management - CRUD operations for sensitive word dictionary  
 - Text Sanitization - Real-time text filtering with asterisk replacement  
-- JWT Authentication - Secure API with token-based auth  
+- JWT Authentication - Secure API with token-based auth (256-bit HS256)
 - Auto-Cache Refresh - Instant pattern updates when dictionary changes  
 - Case-Insensitive Matching - Catches variations (badword, BADWORD, BadWord)  
 - Word Boundary Detection - Only matches complete words, not substrings  
 - Performance Metrics - Monitor sanitization duration and match counts  
+- Distributed Rate Limiting - Redis-backed for multi-instance deployments  
 - H2/MSSQL Support - Development with H2, production with SQL Server
+- Docker & Docker Compose - Full containerization with Redis + MSSQL orchestration
 
 ## Technology Stack
 
@@ -19,9 +21,13 @@ A Spring Boot REST API for filtering and sanitizing sensitive words in text cont
 - **Spring Boot 3.3.0** - Full dependency injection and auto-configuration
 - **Spring Security** - JWT token validation and CORS handling
 - **Spring Data JPA** - Hibernate ORM for database operations
-- **JJWT 0.12.3** - JSON Web Token creation and validation
+- **Spring Data Redis** - Distributed cache and rate limiting
+- **JJWT 0.12.3** - JSON Web Token creation and validation with 256-bit secret validation
 - **Micrometer** - Application metrics (Timer, Counter)
+- **Bucket4j** - Token bucket rate limiting (in-memory + Redis-backed)
+- **Caffeine** - Local caching for user lookups
 - **H2 Database** - In-memory dev database
+- **Redis** - Distributed rate limiting and state synchronization
 - **Springdoc OpenAPI** - Swagger UI documentation
 
 ## Quick Start
@@ -46,29 +52,56 @@ java -jar target/sensitive-words-service-0.0.1-SNAPSHOT.jar
 
 Service starts on **http://localhost:8080**
 
-### Docker Setup (Optional)
+### Docker Setup (Production with Redis & MSSQL)
 
-Run the service with MS SQL Server using Docker Compose:
+The recommended production setup uses Docker Compose to orchestrate:
+- **Redis** - Distributed rate limiting across multiple instances
+- **MS SQL Server** - Production-grade database
+- **Spring Boot App** - Application container
 
 ```bash
-# Start services (app + MS SQL database)
+# 1. Copy environment file and set secrets
+cp .env.example .env
+# Edit .env with your values:
+#   SA_PASSWORD=YourSecurePassword
+#   JWT_SECRET=<base64-encoded 256-bit key>
+
+# 2. Start all services
 docker-compose up -d
 
-# View logs
+# 3. View logs
 docker-compose logs -f app
 
-# Stop services
+# 4. Monitor services
+docker ps  # See all running containers
+redis-cli -h localhost  # Connect to Redis (if installed locally)
+
+# 5. Stop services
 docker-compose down
 
-# Reset database and restart
+# 6. Full reset (delete all data)
 docker-compose down -v
 docker-compose up -d
 ```
 
-Service runs on **http://localhost:8080**
-Database: MS SQL Server on localhost:1433 (User: sa / Password: YourStrong@Password123)
+Services:
+- **App**: http://localhost:8080
+- **MSSQL**: localhost:1433 (User: sa)
+- **Redis**: localhost:6379 (rate limiting backend)
+- **Health Check**: http://localhost:8080/actuator/health
 
-For detailed Docker setup and configuration, see [DOCKER.md](DOCKER.md)
+### Single Instance (Development with H2)
+
+For quick local development:
+
+```bash
+# Build and run locally
+./mvnw clean package
+java -jar target/sensitive-words-service-0.0.1-SNAPSHOT.jar
+```
+
+Service starts on **http://localhost:8080**
+Database: H2 in-memory (resets on restart)
 
 ## API Endpoints
 
@@ -360,6 +393,9 @@ GET /actuator/metrics/sanitize.words.match.total
 ## Development Roadmap
 
 - [x] Rate limiting on expensive endpoints
+- [x] Distributed rate limiting with Redis
+- [x] JWT secret validation
+- [x] Production security profiles
 - [ ] Bulk import sensitive words from CSV
 - [ ] Word variants/aliases support
 - [ ] Webhook notifications on pattern changes
@@ -368,27 +404,122 @@ GET /actuator/metrics/sanitize.words.match.total
 
 ## Performance Improvements
 
-Added caching, concurrency, and rate limiting to improve throughput:
+Added caching, concurrency, rate limiting, and distribution support:
 
 - **User caching** - Login results cached for 10 minutes to avoid repeated database hits
 - **Database indexes** - Added index on `User.username` column for faster lookups
 - **Better concurrency** - Switched to ReadWriteLock so multiple sanitization requests can run in parallel
 - **Connection pool tuning** - Configured leak detection and batch processing for more efficient database access
+- **Distributed rate limiting** - Redis-backed bucket4j for multi-instance rate limit synchronization
+- **ReadWrite locks** - Concurrent reads during sanitization, exclusive writes during cache refresh
 
-## Rate Limiting
+## Rate Limiting (Distributed with Redis)
 
-Expensive endpoints are rate limited to prevent abuse and ensure fair resource usage:
+Expensive endpoints are rate limited to prevent abuse. Limits are **per-client (based on IP address)**.
 
-| Endpoint | Limit | Window |
-|----------|-------|--------|
-| POST /api/v1/sanitize | 100 requests | 1 minute |
-| POST /api/v1/auth/login | 5 attempts | 1 minute |
-| POST /api/v1/auth/register | 5 attempts | 1 minute |
-| POST /api/v1/sensitive-words | 20 operations | 1 minute |
-| PUT /api/v1/sensitive-words/{id} | 20 operations | 1 minute |
-| DELETE /api/v1/sensitive-words/{id} | 20 operations | 1 minute |
+### Single Instance (In-Memory)
+Uses Bucket4j token buckets stored locally in each JVM.
 
-Rate limits are per-client (based on IP address). Exceeding the limit returns HTTP 429 Too Many Requests.
+### Multi-Instance (Distributed via Redis)
+Rate limits are synchronized across all instances. Example with 3 app instances:
+
+| Endpoint | Limit Per Instance | Total (3 instances) | Window |
+|----------|------|------|--------|
+| POST /api/v1/sanitize | 100 requests | 300 requests | 1 minute |
+| POST /api/v1/auth/login | 5 attempts | 15 attempts | 1 minute |
+| POST /api/v1/auth/register | 5 attempts | 15 attempts | 1 minute |
+| POST /api/v1/sensitive-words | 20 operations | 60 operations | 1 minute |
+| PUT /api/v1/sensitive-words/{id} | 20 operations | 60 operations | 1 minute |
+| DELETE /api/v1/sensitive-words/{id} | 20 operations | 60 operations | 1 minute |
+
+Exceeding the limit returns **HTTP 429 Too Many Requests**.
+
+**Graceful Degradation:** If Redis unavailable, automatically falls back to in-memory rate limiting to prevent service disruption.
+
+### Scaling Example
+
+Deploy with 3+ app instances sharing Redis:
+
+```bash
+# Start with Docker Compose
+docker-compose up -d
+
+# Scale to 3 app instances
+docker-compose up -d --scale app=3
+
+# All instances share rate limit counters in Redis
+# Client hits instance 1: 1/100 used
+# Client hits instance 2: 2/100 used (enforced via Redis)
+# Client hits instance 3: 3/100 used (enforced via Redis)
+```
+
+## Security (JWT & Production Hardening)
+
+### JWT Token Validation
+- **Algorithm:** HS256 (HMAC SHA-256)
+- **Secret:** Minimum 256 bits (32 bytes) - **validated at startup**
+- **Signature:** Validated on every request
+- **Expiration:** Default 86400 seconds (24 hours, configurable)
+- **Clock Skew:** Zero tolerance (strict validation)
+
+**Setup secure JWT secret:**
+
+```bash
+# Generate 256-bit key (base64-encoded)
+openssl rand -base64 32
+# Example: ABC123def/xyz+123abc==
+
+# Set environment variable
+export JWT_SECRET="ABC123def/xyz+123abc=="
+
+# Or in .env file
+JWT_SECRET=ABC123def/xyz+123abc==
+```
+
+If secret is too short, service fails at startup with clear error message:
+```
+IllegalStateException: JWT secret key must be at least 256 bits (32 bytes)
+```
+
+### Production vs Development Profiles
+
+**Development Profile** (`application.yml` or `-Dspring.profiles.active=dev`):
+- ✅ H2 Console enabled (`/h2-console/**`)
+- ✅ Swagger UI enabled (`/swagger-ui.html`)
+- ✅ All actuator endpoints exposed
+- ✅ SQL logging enabled
+- ✅ In-memory rate limiting
+
+**Production Profile** (`application-prod.yml` or `-Dspring.profiles.active=prod`):
+- ❌ H2 Console disabled
+- ❌ Swagger UI disabled
+- ⚠️ Only `/actuator/health` public (requires auth for details)
+- ❌ Metrics endpoint disabled
+- ✅ Redis distributed rate limiting
+- ✅ MSSQL database required
+- ✅ Hibernate DDL set to validate (no schema changes)
+
+### Endpoint Security
+
+Protected Endpoints (require JWT):
+```
+ALL /api/v1/** except /auth/**
+```
+
+Public Endpoints:
+```
+POST   /api/v1/auth/register
+POST   /api/v1/auth/login
+GET    /actuator/health
+```
+
+Production-Only Endpoints (disabled in dev):
+```
+/h2-console/**              (DENIED in prod)
+/swagger-ui.html            (DENIED in prod)
+/v3/api-docs/**             (DENIED in prod)
+/actuator/metrics           (DENIED in prod)
+```
 
 ## Contributing
 
