@@ -7,8 +7,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -100,12 +98,6 @@ public class SanitizationService {
         } finally {
             refreshLock.writeLock().unlock();
         }
-    }
-
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onSensitiveWordChanged(SensitiveWordChangedEvent event) {
-        log.debug("Sensitive word changed event received, refreshing cache");
-        refresh();
     }
 
     public SanitizeResult sanitize(String input) {

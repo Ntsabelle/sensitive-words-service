@@ -24,6 +24,16 @@ spring:
       leak-detection-threshold: 60000
       auto-commit: true
 
+  redis:
+    host: ${SPRING_REDIS_HOST:localhost}
+    port: ${SPRING_REDIS_PORT:6379}
+    timeout: 2000
+    jedis:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
   cache:
     type: caffeine
     caffeine:
@@ -62,3 +72,4 @@ springdoc:
     enabled: false
   api-docs:
     enabled: false
+

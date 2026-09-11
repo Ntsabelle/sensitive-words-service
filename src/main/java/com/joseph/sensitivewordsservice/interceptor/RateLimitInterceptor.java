@@ -1,6 +1,7 @@
 package com.joseph.sensitivewordsservice.interceptor;
 
 import com.joseph.sensitivewordsservice.annotation.RateLimit;
+import com.joseph.sensitivewordsservice.config.RedisRateLimitConfig;
 import io.github.bucket4j.Bucket;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,6 +15,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 /**
  * Interceptor to enforce rate limiting on endpoints marked with @RateLimit annotation.
  * 
+ * Supports both in-memory (single instance) and Redis (distributed multi-instance) rate limiting.
  * Returns 429 Too Many Requests if rate limit exceeded.
  */
 @Component
@@ -37,16 +39,31 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         }
 
         String bucketName = annotation.bucketName();
-        Bucket bucket = applicationContext.getBean(bucketName + "Bucket", Bucket.class);
-
-        if (bucket == null) {
-            log.warn("Rate limit bucket not found: {}", bucketName);
-            return true;
-        }
-
         String clientIp = getClientIp(request);
-        if (bucket.tryConsume(1)) {
-            return true;
+        
+        boolean allowed;
+        
+        // Try Redis-backed rate limiting first
+        try {
+            RedisRateLimitConfig.RateLimitingService redisService = 
+                applicationContext.getBean(RedisRateLimitConfig.RateLimitingService.class);
+            allowed = redisService.allowRequest(bucketName, clientIp);
+            if (allowed) {
+                return true;
+            }
+        } catch (Exception e) {
+            log.debug("Redis rate limiting not available, falling back to in-memory", e);
+            
+            // Fallback to in-memory bucket4j
+            Bucket bucket = applicationContext.getBean(bucketName + "Bucket", Bucket.class);
+            if (bucket == null) {
+                log.warn("Rate limit bucket not found: {}", bucketName);
+                return true;
+            }
+            
+            if (bucket.tryConsume(1)) {
+                return true;
+            }
         }
 
         log.warn("Rate limit exceeded for {} from {}", bucketName, clientIp);
@@ -59,7 +76,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private String getClientIp(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0];
+            return xForwardedFor.split(",")[0].trim();
         }
         return request.getRemoteAddr();
     }

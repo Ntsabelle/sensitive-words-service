@@ -1,6 +1,20 @@
 version: '3.8'
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: sensitive-words-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - sensitive-words-network
+    restart: unless-stopped
+
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sensitive-words-mssql
@@ -19,6 +33,7 @@ services:
       retries: 5
     networks:
       - sensitive-words-network
+    restart: unless-stopped
 
   app:
     build:
@@ -31,11 +46,15 @@ services:
       SPRING_DATASOURCE_USERNAME: "sa"
       SPRING_DATASOURCE_PASSWORD: ${SA_PASSWORD:-ChangeMe@1234}
       SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"
+      SPRING_REDIS_HOST: "redis"
+      SPRING_REDIS_PORT: "6379"
       JWT_SECRET: ${JWT_SECRET:-must-set-environment-variable}
       SERVER_PORT: "8080"
     ports:
       - "8080:8080"
     depends_on:
+      redis:
+        condition: service_healthy
       mssql:
         condition: service_healthy
     networks:
