@@ -404,6 +404,6 @@ MIT License - See LICENSE file
 ## Support
 
 For issues and questions:
-- Email: support@example.com
+- Email: tshedison929@gmail.com
 - GitHub Issues: https://github.com/joseph/sensitive-words-service/issues
 - Documentation: http://localhost:8080/swagger-ui.html
