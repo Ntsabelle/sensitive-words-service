@@ -2,6 +2,7 @@ package com.joseph.sensitivewordsservice.repository;
 
 import com.joseph.sensitivewordsservice.entity.SensitiveWord;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+
 
 import java.time.Instant;
 import java.util.List;
@@ -39,6 +41,11 @@ class SensitiveWordRepositoryTest {
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
+    }
+    @AfterEach
+    void tearDown() {
+        sensitiveWordRepository.deleteAll();
+        entityManager.flush();
     }
 
     @Test

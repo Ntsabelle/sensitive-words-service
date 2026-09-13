@@ -109,9 +109,6 @@ class SanitizeControllerTest {
 
     @Test
     void testSanitize_EmptyText() throws Exception {
-        SanitizationService.SanitizeResult mockResult = new SanitizationService.SanitizeResult("", 0);
-        
-        when(sanitizationService.sanitize(anyString())).thenReturn(mockResult);
 
         request.setText("");
 

@@ -5,6 +5,7 @@ A Spring Boot REST API for filtering and sanitizing sensitive words in text cont
 ## Features
 
 - Word Management - CRUD operations for sensitive word dictionary  
+- Preloaded Word List - Auto-seeds the SQL-keyword sensitive word list on first startup  
 - Text Sanitization - Real-time text filtering with asterisk replacement  
 - JWT Authentication - Secure API with token-based auth (256-bit HS256)
 - Auto-Cache Refresh - Instant pattern updates when dictionary changes  
@@ -65,8 +66,12 @@ cp .env.example .env
 # Edit .env with your values:
 #   SA_PASSWORD=YourSecurePassword
 #   JWT_SECRET=<base64-encoded 256-bit key>
+# SA_PASSWORD is read by both the mssql container (as its SA login) and the
+# app container (as its datasource password) - keep it the same value in both.
 
 # 2. Start all services
+# The app waits for redis and mssql to report healthy (not just "started")
+# before connecting, so first boot can take ~30s while SQL Server initializes.
 docker-compose up -d
 
 # 3. View logs
@@ -154,11 +159,10 @@ Content-Type: application/json
 
 {
   "word": "badword",
-  "category": "profanity",
-  "severity": "HIGH"
+  "active": true
 }
 ```
-**Note:** Cache automatically refreshes after creation
+**Note:** Cache automatically refreshes after creation. `active` defaults to `true` if omitted.
 
 #### Get Word by ID
 ```
@@ -174,8 +178,7 @@ Content-Type: application/json
 
 {
   "word": "newword",
-  "category": "profanity",
-  "severity": "MEDIUM"
+  "active": false
 }
 ```
 **Note:** Cache automatically refreshes after update
@@ -265,6 +268,17 @@ Output: "Hello ******* and ******* here"
 Count:  2
 ```
 
+## Data Seeding
+
+On startup, `SensitiveWordSeeder` (an `ApplicationRunner`) preloads the `sensitive_words` table from `src/main/resources/seed-sensitive-words.json` — a list of SQL keywords the company has designated as sensitive (e.g. `SELECT`, `DROP`, `SELECT * FROM`).
+
+- Seeding only runs **if the table is empty** — it never duplicates or overwrites existing words.
+- **Dev (H2, `ddl-auto=create`):** the table is recreated empty on every boot, so the seed list is reloaded every restart.
+- **Prod (MSSQL, `ddl-auto=validate`):** the table persists across restarts, so seeding effectively runs once — the first time the service starts against a fresh database — and is a no-op afterwards.
+- The sanitization cache is refreshed automatically once seeding completes, so the API is ready to mask words immediately.
+
+To change the preloaded list, edit `seed-sensitive-words.json` (a JSON array of strings) before first startup against a fresh database. Adding to it later won't affect an already-seeded database — use the CRUD API to add words to an existing deployment.
+
 ## Cache Refresh Strategy
 
 The sanitization pattern is **cached in memory** for performance:
@@ -312,18 +326,17 @@ CREATE TABLE users (
 );
 ```
 
-### sensitive_word table
+### sensitive_words table
 ```sql
-CREATE TABLE sensitive_word (
+CREATE TABLE sensitive_words (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   word VARCHAR(255) UNIQUE NOT NULL,
-  category VARCHAR(100),
-  severity VARCHAR(50),
   active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP
+  updated_at TIMESTAMP NOT NULL
 );
 ```
+Preloaded on first startup from `seed-sensitive-words.json` — see [Data Seeding](#data-seeding).
 
 ## Testing
 
@@ -382,9 +395,9 @@ GET /actuator/metrics/sanitize.words.match.total
 - Configure: `jwt.expiration` in `application.yml`
 
 ### Sanitization Not Working
-- No words in database
-- Solution: Create word via POST `/api/v1/sensitive-words`
-- Cache refreshes automatically after creation
+- The seed list (`seed-sensitive-words.json`) should auto-populate the table on first startup — check logs for `Preloaded N sensitive word(s)` to confirm seeding ran
+- If the table is unexpectedly empty (e.g. seeding was skipped or the resource file is missing), add a word manually via POST `/api/v1/sensitive-words`
+- Cache refreshes automatically after creation, update, deletion, and after seeding
 
 ### Port 8080 Already in Use
 - Change port: `server.port: 8081` in `application.yml`
@@ -396,6 +409,7 @@ GET /actuator/metrics/sanitize.words.match.total
 - [x] Distributed rate limiting with Redis
 - [x] JWT secret validation
 - [x] Production security profiles
+- [x] Preload sensitive word list on startup (seed-sensitive-words.json)
 - [ ] Bulk import sensitive words from CSV
 - [ ] Word variants/aliases support
 - [ ] Webhook notifications on pattern changes

@@ -42,10 +42,12 @@ services:
       dockerfile: Dockerfile
     container_name: sensitive-words-app
     environment:
-      SPRING_DATASOURCE_URL: "jdbc:h2:mem:testdb"
-      SPRING_DATASOURCE_DRIVER: "org.h2.Driver"
+      #SPRING_DATASOURCE_URL: "jdbc:h2:mem:testdb"
+      #SPRING_DATASOURCE_DRIVER: "org.h2.Driver"
+      SPRING_DATASOURCE_URL: "jdbc:sqlserver://mssql:1433;databaseName=sensitivewords;encrypt=true;trustServerCertificate=true"
+      SPRING_DATASOURCE_DRIVER: "com.microsoft.sqlserver.jdbc.SQLServerDriver"
       SPRING_DATASOURCE_USERNAME: "sa"
-      SPRING_DATASOURCE_PASSWORD: ""
+      SPRING_DATASOURCE_PASSWORD: ${SA_PASSWORD:-ChangeMe@1234}
       SPRING_JPA_HIBERNATE_DDL_AUTO: "create"
       SPRING_H2_CONSOLE_ENABLED: "false"
       SPRING_REDIS_HOST: "redis"
@@ -56,9 +58,9 @@ services:
       - "8080:8080"
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
       mssql:
-        condition: service_started
+        condition: service_healthy
     networks:
       - sensitive-words-network
     restart: unless-stopped

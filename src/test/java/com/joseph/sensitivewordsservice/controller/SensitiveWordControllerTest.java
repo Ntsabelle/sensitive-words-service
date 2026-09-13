@@ -3,6 +3,7 @@ package com.joseph.sensitivewordsservice.controller;
 import com.joseph.sensitivewordsservice.dto.SensitiveWordRequest;
 import com.joseph.sensitivewordsservice.dto.SensitiveWordResponse;
 import com.joseph.sensitivewordsservice.entity.SensitiveWord;
+import com.joseph.sensitivewordsservice.exception.GlobalExceptionHandler;
 import com.joseph.sensitivewordsservice.mapper.SensitiveWordMapper;
 import com.joseph.sensitivewordsservice.service.SensitiveWordService;
 import com.joseph.sensitivewordsservice.service.SanitizationService;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -51,7 +53,11 @@ class SensitiveWordControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new SensitiveWordController(sensitiveWordService, sanitizationService)).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(
+                new SensitiveWordController(sensitiveWordService, sanitizationService))
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
         objectMapper = new ObjectMapper();
 
         sensitiveWord = SensitiveWord.builder()
