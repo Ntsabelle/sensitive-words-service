@@ -6,4 +6,9 @@ services:
       - 'MSSQL_PID=express'
       - 'MSSQL_SA_PASSWORD=verYs3cret'
     ports:
-      - '1433'
+      - '1433:1433'
+
+  redis:
+    image: 'redis:7-alpine'
+    ports:
+      - '6379:6379'
