@@ -10,6 +10,43 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # The "integration" test profile (SensitiveWordRepositoryTest,
+    # SensitiveWordsServiceApplicationTests) needs a real SQL Server and Redis
+    # instance reachable on localhost, matching docker-compose.yml.
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          SA_PASSWORD: ${{ env.SA_PASSWORD }}
+          MSSQL_PID: Developer
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P $SA_PASSWORD -Q 'SELECT 1' -b -o /dev/null"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 30s
+
+    env:
+      # Ephemeral, CI-only credentials for the throwaway SQL Server container.
+      # Not used anywhere outside this workflow run.
+      SA_PASSWORD: "Ci_TestPassw0rd!"
+      DB_NAME: sensitive_words_db
+      DB_USER: sensitive_words_app
+      DB_PASSWORD: "Ci_AppPassw0rd!"
+
     steps:
     - uses: actions/checkout@v4
 
@@ -20,7 +57,16 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
+    - name: Provision integration test database
+      run: |
+        container_id=$(docker ps --filter "ancestor=mcr.microsoft.com/mssql/server:2022-latest" --format "{{.ID}}")
+        docker cp docker/init-db.sh "$container_id":/tmp/init-db.sh
+        docker exec -e SA_PASSWORD -e DB_NAME -e DB_USER -e DB_PASSWORD "$container_id" bash /tmp/init-db.sh
+
     - name: Run Maven clean package
+      env:
+        SPRING_DATASOURCE_USERNAME: ${{ env.DB_USER }}
+        SPRING_DATASOURCE_PASSWORD: ${{ env.DB_PASSWORD }}
       run: mvn clean package -q -ff
 
     - name: Upload JAR artifact
@@ -28,4 +74,46 @@ jobs:
       with:
         name: application-jar
         path: target/*.jar
+
+  docker:
+    name: Build and push Docker image
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute lowercase image name
+        id: image
+        run: echo "name=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=raw,value=latest
+            type=sha
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
