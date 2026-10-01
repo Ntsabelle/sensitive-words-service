@@ -71,6 +71,10 @@ public class SanitizationService {
         try{
             List<String> activeWords = sensitiveWordRepository.findAllActiveWords();
 
+            // Sort longest word first. Regex "a|b" picks the first match it finds,
+            // not the longest one. So if we had "ass" before "assassin", a short
+            // match could win instead of the longer, more specific word.
+            // Sorting longest-first makes sure the longer word always wins.
             List<String> sorted = activeWords.stream()
                     .sorted(Comparator.comparingInt(String::length).reversed())
                     .collect(Collectors.toList());
