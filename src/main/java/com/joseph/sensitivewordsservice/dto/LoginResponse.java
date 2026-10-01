@@ -20,7 +20,9 @@ import lombok.NoArgsConstructor;
     {
       "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
       "username": "john_doe",
-      "expiresIn": 120000
+      "expiresIn": 900000,
+      "refreshToken": "******",
+      "refreshExpiresIn": 604800000
     }"""
 )
 public class LoginResponse {
@@ -38,8 +40,20 @@ public class LoginResponse {
     private String username;
     
     @Schema(
-        description = "Token expiration time in milliseconds from issue time. Default: 120000 (2 minutes for testing, 86400000 for production)",
-        example = "120000"
+        description = "Access token expiration time in milliseconds from issue time.",
+        example = "900000"
     )
     private Long expiresIn;
+
+    @Schema(
+        description = "Opaque refresh token. Exchange via POST /api/v1/auth/refresh for a new access token once the access token expires, without re-submitting credentials. Single-use: each refresh rotates it for a new one.",
+        example = "******"
+    )
+    private String refreshToken;
+
+    @Schema(
+        description = "Refresh token expiration time in milliseconds from issue time.",
+        example = "604800000"
+    )
+    private Long refreshExpiresIn;
 }

@@ -78,7 +78,13 @@ springdoc:
 jwt:
   # JWT secret - uses environment variable for security (min 256 bits)
   secret: ${JWT_SECRET:my-secret-key-for-jwt-token-generation-min-256-bits}
-  expiration: 120000
+  # Access token lifetime (ms). Short-lived by design - clients exchange it
+  # for a new one via POST /api/v1/auth/refresh instead of re-logging in.
+  # Override locally for fast manual testing, e.g. JWT_EXPIRATION=120000
+  expiration: ${JWT_EXPIRATION:900000}
+  # Refresh token lifetime (ms). Refresh tokens are opaque, rotated, and
+  # individually revocable server-side (see RefreshTokenService) - default 7 days.
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
 logging:
   level:

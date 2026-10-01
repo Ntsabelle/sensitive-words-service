@@ -2,6 +2,7 @@ package com.joseph.sensitivewordsservice.service;
 
 import com.joseph.sensitivewordsservice.dto.LoginRequest;
 import com.joseph.sensitivewordsservice.dto.LoginResponse;
+import com.joseph.sensitivewordsservice.dto.RefreshRequest;
 import com.joseph.sensitivewordsservice.entity.User;
 import com.joseph.sensitivewordsservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenService refreshTokenService;
 
     @Value("${jwt.expiration:86400000}")
     private Long expiration;
@@ -54,13 +56,55 @@ public class AuthService {
 
         // Generate JWT token with configured expiration
         String token = jwtService.generateToken(user.getUsername());
+        String rawRefreshToken = refreshTokenService.issueToken(user);
         log.info("User logged in successfully: {}", user.getUsername());
 
         return LoginResponse.builder()
                 .token(token)
                 .username(user.getUsername())
                 .expiresIn(expiration)
+                .refreshToken(rawRefreshToken)
+                .refreshExpiresIn(refreshTokenService.getRefreshExpirationMs())
                 .build();
+    }
+
+    /**
+     * Exchange a refresh token for a new access token.
+     * The presented refresh token is rotated: it is revoked and a new one
+     * is issued alongside the new access token. Reuse of an already-used
+     * refresh token revokes every active session for that user, since it
+     * is a strong signal the token was stolen.
+     *
+     * @param request RefreshRequest containing the refresh token
+     * @return LoginResponse with a new access token and a new rotated refresh token
+     * @throws IllegalArgumentException if the refresh token is invalid, expired, or already used
+     */
+    public LoginResponse refresh(RefreshRequest request) {
+        RefreshTokenService.RotationResult result = refreshTokenService.validateAndRotate(request.getRefreshToken());
+        User user = result.user();
+
+        String token = jwtService.generateToken(user.getUsername());
+        log.info("Access token refreshed for user: {}", user.getUsername());
+
+        return LoginResponse.builder()
+                .token(token)
+                .username(user.getUsername())
+                .expiresIn(expiration)
+                .refreshToken(result.rawRefreshToken())
+                .refreshExpiresIn(refreshTokenService.getRefreshExpirationMs())
+                .build();
+    }
+
+    /**
+     * Log out by revoking the presented refresh token. Idempotent: revoking
+     * an already-revoked or unknown token is a no-op, so this never leaks
+     * whether a given token was valid.
+     *
+     * @param request RefreshRequest containing the refresh token to revoke
+     */
+    public void logout(RefreshRequest request) {
+        refreshTokenService.revoke(request.getRefreshToken());
+        log.info("Refresh token revoked (logout)");
     }
 
     /**
