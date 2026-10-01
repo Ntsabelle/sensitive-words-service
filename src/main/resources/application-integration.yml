@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:sqlserver://localhost:1433;databaseName=sensitive_words_db;encrypt=true;trustServerCertificate=true}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER:com.microsoft.sqlserver.jdbc.SQLServerDriver}
+    username: ${SPRING_DATASOURCE_USERNAME:sensitive_words_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:SensitiveWordsApp!123}
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.SQLServerDialect
+  h2:
+    console:
+      enabled: false

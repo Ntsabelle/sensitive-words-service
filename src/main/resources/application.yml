@@ -2,6 +2,8 @@ spring:
   application:
     name: sensitive-words-service
 
+  flyway:
+    enabled: false
   datasource:
     # Database connection - uses environment variables for security
     # Default: H2 in-memory for development
@@ -51,9 +53,6 @@ spring:
         # Order inserts/updates by entity for better database efficiency
         order_inserts: true
         order_updates: true
-        # Connection validation to prevent "stale connection" errors
-        connection:
-          provider_disables_autocommit: true
     show-sql: ${DB_SHOW_SQL:false}
 
   server:

@@ -7,12 +7,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
-
 
 import java.time.Instant;
 import java.util.List;
@@ -21,8 +20,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-@Transactional
-@ActiveProfiles("test")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("integration")
 class SensitiveWordRepositoryTest {
 
     @Autowired
@@ -35,6 +34,10 @@ class SensitiveWordRepositoryTest {
 
     @BeforeEach
     void setUp() {
+        sensitiveWordRepository.deleteAllInBatch();
+        entityManager.flush();
+        entityManager.clear();
+
         sensitiveWord = SensitiveWord.builder()
                 .word("badword")
                 .active(true)
@@ -42,10 +45,12 @@ class SensitiveWordRepositoryTest {
                 .updatedAt(Instant.now())
                 .build();
     }
+
     @AfterEach
     void tearDown() {
-        sensitiveWordRepository.deleteAll();
+        sensitiveWordRepository.deleteAllInBatch();
         entityManager.flush();
+        entityManager.clear();
     }
 
     @Test

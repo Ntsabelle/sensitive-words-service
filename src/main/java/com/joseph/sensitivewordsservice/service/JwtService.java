@@ -61,7 +61,13 @@ public class JwtService {
      * Uses HMAC SHA-256 algorithm.
      */
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secretKey.getBytes());
+        byte[] keyBytes;
+        try {
+            keyBytes = Base64.getDecoder().decode(secretKey);
+        } catch (IllegalArgumentException e) {
+            keyBytes = secretKey.getBytes();
+        }
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     /**

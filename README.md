@@ -62,7 +62,7 @@ The recommended production setup uses Docker Compose to orchestrate:
 
 ```bash
 # 1. Copy environment file and set secrets
-cp .env.example .env
+cp .env .env
 # Edit .env with your values:
 #   SA_PASSWORD=YourSecurePassword
 #   JWT_SECRET=<base64-encoded 256-bit key>

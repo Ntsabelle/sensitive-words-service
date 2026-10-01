@@ -39,11 +39,11 @@ public class SensitiveWord {
     private boolean active = true;
 
     /** Timestamp when word was created. Set automatically on insert. */
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, columnDefinition = "datetimeoffset")
     private Instant createdAt;
 
     /** Timestamp when word was last updated. Updated on insert and update. */
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_at", nullable = false, columnDefinition = "datetimeoffset")
     private Instant updatedAt;
 
     /** Auto-set createdAt and updatedAt on initial persist. */

@@ -1,4 +1,8 @@
 spring:
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
+    baseline-on-migrate: true
+    baseline-version: 0
   jpa:
     hibernate:
       ddl-auto: validate
@@ -24,15 +28,16 @@ spring:
       leak-detection-threshold: 60000
       auto-commit: true
 
-  redis:
-    host: ${SPRING_REDIS_HOST:localhost}
-    port: ${SPRING_REDIS_PORT:6379}
-    timeout: 2000
-    jedis:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 0
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: 2000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
 
   cache:
     type: caffeine
@@ -59,17 +64,16 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,health/**
+        include: health,prometheus
       base-path: /actuator
   endpoint:
     health:
       show-details: when-authorized
   metrics:
-    enabled: false
+    enabled: true
 
 springdoc:
   swagger-ui:
     enabled: false
   api-docs:
     enabled: false
-

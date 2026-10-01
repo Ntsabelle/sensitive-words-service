@@ -28,7 +28,7 @@ public class RedisRateLimitConfig {
      * Synchronizes bucket state across multiple JVM instances.
      */
     @Bean
-    @ConditionalOnProperty(name = "spring.redis.host")
+    @ConditionalOnProperty(name = "spring.data.redis.host")
     public RateLimitingService redisRateLimitingService(StringRedisTemplate redisTemplate) {
         log.info("Initializing Redis-backed distributed rate limiting");
         return new RedisRateLimitingService(redisTemplate);

@@ -56,7 +56,7 @@ public class SecurityConfig {
      * Active by default and in "prod" profile.
      */
     @Bean
-    @Profile({"!dev", "!test", "prod"})
+    @Profile("!dev & !test")
     public SecurityFilterChain prodSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())

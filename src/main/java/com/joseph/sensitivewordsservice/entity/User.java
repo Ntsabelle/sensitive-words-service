@@ -46,7 +46,7 @@ public class User {
      * Uses Hibernate @CreationTimestamp annotation for automatic management.
      */
     @CreationTimestamp
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false, columnDefinition = "datetimeoffset")
     private Instant createdAt;
 
     /**
@@ -54,5 +54,6 @@ public class User {
      * Uses Hibernate @UpdateTimestamp annotation for automatic management.
      */
     @UpdateTimestamp
+    @Column(columnDefinition = "datetimeoffset")
     private Instant updatedAt;
 }
